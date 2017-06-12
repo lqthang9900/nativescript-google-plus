@@ -1,13 +1,14 @@
 var applicationModule = require("application");
 var _AndroidApplication = applicationModule.android;
 var RC_SIGN_IN = 9001
+var _googleApiClient;
 
-var GooglePlus = function(){
+var GooglePlus = function () {
 
-    var scopes = [ "profile", "email" ]
+    var scopes = ["profile", "email"]
 
     // args = {scopes, shouldFetchBasicProfile, clientID}
-    GooglePlus.initSdk = function(args) {
+    GooglePlus.initSdk = function (_ggAppId) {
 
         var self = this
         var activity = _AndroidApplication.foregroundActivity
@@ -16,49 +17,48 @@ var GooglePlus = function(){
         var gso = new com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
             .requestId()
+            .requestIdToken(_ggAppId)
             .build();
 
         // Build a GoogleApiClient with access to the Google Sign-In API and the
         // options specified by gso.
-        this._googleApiClient = new com.google.android.gms.common.api.GoogleApiClient.Builder(_AndroidApplication.context.getApplicationContext())
+        _googleApiClient = new com.google.android.gms.common.api.GoogleApiClient.Builder(_AndroidApplication.context.getApplicationContext())
             .addOnConnectionFailedListener(new com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener({
-                onConnectionFailed: function(){
-                    if(self._connectionFailCallback)
+                onConnectionFailed: function () {
+                    if (self._connectionFailCallback)
                         self._connectionFailCallback()
                 }
             }))
             .addApi(com.google.android.gms.auth.api.Auth.GOOGLE_SIGN_IN_API, gso)
             .build();
-       
-        console.log("## initSdk")
     }
 
 
-    GooglePlus.registerCallback = function(successCallback, failCallback, connectionFailCallback){
+    GooglePlus.registerCallback = function (successCallback, failCallback, connectionFailCallback) {
         this._successCallback = successCallback
         this._failCallback = failCallback
         this._connectionFailCallback = connectionFailCallback
 
     }
 
-    GooglePlus.handleSignInResult = function(result) {
+    GooglePlus.handleSignInResult = function (result) {
 
-        console.log("## handleSignInResult = " + result.isSuccess())
+        // console.log("## handleSignInResult = " + result.isSuccess())
 
         if (result.isSuccess()) {
             // Signed in successfully, show authenticated UI.
             var acct = result.getSignInAccount();
             this._successCallback(acct);
 
-            if(this._profileInfoCallback){
+            if (this._profileInfoCallback) {
                 var result = {
                     userId: acct.getId(),                  // For client-side use only!
                     idToken: acct.getIdToken(), // Safe to send to the server
                     fullName: acct.getDisplayName(),
-                    email: acct.getEmail(),                        
+                    email: acct.getEmail(),
                 }
-
-                this._profileInfoCallback(result)                
+                _googleApiClient.connect();
+                this._profileInfoCallback(result);
             }
 
 
@@ -69,80 +69,73 @@ var GooglePlus = function(){
     }
 
 
-    GooglePlus.disconnect = function(callback){
+    GooglePlus.disconnect = function (callback) {
 
-        var resultCallback = new com.google.android.gms.common.api.ResultCallback({             
-            onResult: function(status) {
-                if(callback)
+        var resultCallback = new com.google.android.gms.common.api.ResultCallback({
+            onResult: function (status) {
+                if (callback)
                     callback()
             }
         })
 
-        com.google.android.gms.auth.api.Auth.GoogleSignInApi.revokeAccess(this._googleApiClient).setResultCallback(resultCallback)
+        com.google.android.gms.auth.api.Auth.GoogleSignInApi.revokeAccess(_googleApiClient).setResultCallback(resultCallback)
     }
 
-    GooglePlus.logOut = function(callback){
-
-        var resultCallback = new com.google.android.gms.common.api.ResultCallback({             
-            onResult: function(status) {
-                if(callback)
-                    callback()
-            }
-        })
-        
-        com.google.android.gms.auth.api.Auth.GoogleSignInApi.signOut(this._googleApiClient).setResultCallback(resultCallback)            
+    GooglePlus.logOut = function () {
+        if (_googleApiClient && _googleApiClient.isConnected())
+            _googleApiClient.clearDefaultAccountAndReconnect();
     }
 
-    GooglePlus.logIn = function(profileInfoCallback){
+    GooglePlus.logIn = function (profileInfoCallback) {
 
         this._profileInfoCallback = profileInfoCallback
 
-        var signInIntent = com.google.android.gms.auth.api.Auth.GoogleSignInApi.getSignInIntent(this._googleApiClient);
+        var signInIntent = com.google.android.gms.auth.api.Auth.GoogleSignInApi.getSignInIntent(_googleApiClient);
         var act = _AndroidApplication.foregroundActivity || _AndroidApplication.startActivity;
         var previousResult = act.onActivityResult;
 
         var self = this
         act.onActivityResult = function (requestCode, resultCode, data) {
-         
+
             act.onActivityResult = previousResult;
-         
+
             if (requestCode === RC_SIGN_IN && resultCode === android.app.Activity.RESULT_OK) {
                 var result = com.google.android.gms.auth.api.Auth.GoogleSignInApi.getSignInResultFromIntent(data);
                 self.handleSignInResult(result);
-            }else{
+            } else {
                 self._failCallback()
             }
-         }
+        }
 
-        
-        act.startActivityForResult(signInIntent, RC_SIGN_IN); 
+
+        act.startActivityForResult(signInIntent, RC_SIGN_IN);
     }
 
-    GooglePlus.isLoggedIn = function(){
-        var opr = com.google.android.gms.auth.api.Auth.GoogleSignInApi.silentSignIn(this._googleApiClient);
+    GooglePlus.isLoggedIn = function () {
+        var opr = com.google.android.gms.auth.api.Auth.GoogleSignInApi.silentSignIn(_googleApiClient);
         return opr.isDone()
     }
 
-    GooglePlus.share = function(){
+    GooglePlus.share = function () {
         //contentURL, contentTitle, imageURL, contentDescription
 
-        var activity = _AndroidApplication.foregroundActivity || _AndroidApplication.startActivity  
+        var activity = _AndroidApplication.foregroundActivity || _AndroidApplication.startActivity
         var builder = new com.google.android.gms.plus.PlusShare.Builder(activity)
-        
-        if(params.imageURL){    
+
+        if (params.imageURL) {
             var imageUri
 
-            if(params.imageURL.substring(0, 'http'.length) == 'http') // remote not work!!
+            if (params.imageURL.substring(0, 'http'.length) == 'http') // remote not work!!
                 imageUri = android.net.Uri.parse(params.imageURL)
             else // local file
                 imageUri = android.net.Uri.fromFile(new java.io.File(params.imageURL))
 
             //builder.setType("image/*")
-            builder.setStream(imageUri)        
+            builder.setStream(imageUri)
 
-        }else{
+        } else {
         }
-        
+
         builder.setType("text/plain")
 
         //if(params.contentDescription)    
@@ -167,15 +160,15 @@ var GooglePlus = function(){
 
         if (intent.resolveActivity(_AndroidApplication.context.getPackageManager()) != null) {
             var previousResult = _AndroidApplication.onActivityResult;
-            _AndroidApplication.onActivityResult = function (requestCode, resultCode, data) {            
+            _AndroidApplication.onActivityResult = function (requestCode, resultCode, data) {
                 _AndroidApplication.onActivityResult = previousResult;
             }
             _AndroidApplication.currentContext.startActivityForResult(intent, 0)
-        }else{
-            var browserIntent = new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=com.google.android.apps.plus"));        
-            _AndroidApplication.currentContext.startActivity(browserIntent);                
-        }        
-    }    
+        } else {
+            var browserIntent = new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=com.google.android.apps.plus"));
+            _AndroidApplication.currentContext.startActivity(browserIntent);
+        }
+    }
 
     return GooglePlus
 }
