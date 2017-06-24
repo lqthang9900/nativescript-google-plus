@@ -17,6 +17,7 @@ var GooglePlus = function () {
         var gso = new com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
             .requestId()
+            .requestProfile()
             .requestIdToken(_ggAppId)
             .build();
 
@@ -54,7 +55,8 @@ var GooglePlus = function () {
                 var result = {
                     userId: acct.getId(),                  // For client-side use only!
                     idToken: acct.getIdToken(), // Safe to send to the server
-                    fullName: acct.getDisplayName(),
+                    firstName: acct.getGivenName(),
+                    lastName: acct.getFamilyName(),
                     email: acct.getEmail(),
                 }
                 _googleApiClient.connect();
