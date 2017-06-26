@@ -10,16 +10,19 @@ var GooglePlus = function(){
         args = args || {shouldFetchBasicProfile: true}
 
         var signIn = GIDSignIn.sharedInstance();                    
-        signIn.shouldFetchBasicProfile = args.shouldFetchBasicProfile;
-        signIn.scopes = args.scopes || scopes;
+        
+        // signIn.scopes = args.scopes || scopes;
+        signIn.scopes = scopes;
 
         if(args.kClientId)
-            signIn.clientID = args.clientID;
+            // signIn.clientID = args.clientID;
+            signIn.clientID = args;
 
         var delegate = this.createSignInDelegate();
+        
         signIn.delegate = delegate;
         signIn.uiDelegate = delegate;
-
+        signIn.shouldFetchBasicProfile = true;
         console.log("## initSdk")
     }
 
@@ -71,8 +74,8 @@ var GooglePlus = function(){
                             userId: user.userID,                  // For client-side use only!
                             idToken: user.authentication.idToken, // Safe to send to the server
                             fullName: user.profile.name,
-                            givenName: user.profile.givenName,
-                            familyName: user.profile.familyName,
+                            firstName: user.profile.givenName,
+                            lastName: user.profile.familyName,
                             email: user.profile.email,                        
                         }
 
