@@ -2,7 +2,7 @@ var applicationModule = require("application");
 
 var GooglePlus = function () {
 
-    var scopes = ["profile", "email"]
+    var scopes = ["profile", "email", "https://www.googleapis.com/auth/plus.login"]
 
     // args = {scopes, shouldFetchBasicProfile, clientID}
     GooglePlus.initSdk = function (args) {
@@ -73,6 +73,7 @@ var GooglePlus = function () {
                         var user = {
                             userId: user.userID,                  // For client-side use only!
                             idToken: user.authentication.idToken, // Safe to send to the server
+                            acccessToken: user.authentication.accessToken,
                             fullName: user.profile.name,
                             firstName: user.profile.givenName,
                             lastName: user.profile.familyName,
