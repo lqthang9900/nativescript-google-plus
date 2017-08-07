@@ -5,7 +5,7 @@ var _googleApiClient;
 
 var GooglePlus = function () {
 
-    var scopes = ["profile", "email"]
+    var scopes = ["profile", "email", "https://www.googleapis.com/auth/plus.login"]
 
     // args = {scopes, shouldFetchBasicProfile, clientID}
     GooglePlus.initSdk = function (_ggAppId) {
@@ -19,6 +19,7 @@ var GooglePlus = function () {
             .requestId()
             .requestProfile()
             .requestIdToken(_ggAppId)
+            .requestServerAuthCode(_ggAppId)
             .build();
 
         // Build a GoogleApiClient with access to the Google Sign-In API and the
@@ -55,6 +56,7 @@ var GooglePlus = function () {
                 var result = {
                     userId: acct.getId(),                  // For client-side use only!
                     idToken: acct.getIdToken(), // Safe to send to the server
+                    accessToken: acct.getAccessToken(),
                     firstName: acct.getGivenName(),
                     lastName: acct.getFamilyName(),
                     email: acct.getEmail(),
