@@ -17,6 +17,7 @@ var GooglePlus = function () {
         // if(args.kClientId)
         // signIn.clientID = args.clientID;
         signIn.clientID = args;
+        signIn.serverClientID = args;
 
         var delegate = this.createSignInDelegate();
 
@@ -78,6 +79,7 @@ var GooglePlus = function () {
                             firstName: user.profile.givenName,
                             lastName: user.profile.familyName,
                             email: user.profile.email,
+                            serverAuthCode: user.serverAuthCode
                         }
 
                         self._successCallback('logIn')

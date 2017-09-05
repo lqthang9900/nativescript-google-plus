@@ -56,7 +56,8 @@ var GooglePlus = function () {
                 var result = {
                     userId: acct.getId(),                  // For client-side use only!
                     idToken: acct.getIdToken(), // Safe to send to the server
-                    accessToken: acct.getServerAuthCode(),
+                    accessToken: '',
+                    serverAuthCode: acct.getServerAuthCode(),
                     firstName: acct.getGivenName(),
                     lastName: acct.getFamilyName(),
                     email: acct.getEmail(),
